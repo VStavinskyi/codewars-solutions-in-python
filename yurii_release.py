@@ -33,6 +33,38 @@ def save_config(config_as_string, filename):
     f.write(config_as_string)
     f.close()
 
+def update_config(filename, G, current_release):
+    out_file = f"{filename}.xml"
+    config_file = ET.parse(out_file)
+    config_file_tree = config_file.getroot()
+
+    for token in config_file_tree.iter('name'):
+        # change invoke token
+        name.text = "MY NEW VERSION"
+    
+    for script_body in config_file_tree.iter('script'):
+        # get old pipeline script by tag
+        script_body.text = G.get_job_script(filename, current_release)
+
+    config_file.write(out_file)
+
+    config_as_string = ""
+    with open(out_file, 'r') as file:
+        config_as_string = file.read()
+    
+    os.remove(out_file)
+
+    # change shared lib
+    config_as_string = config_as_string.replace("@Library('shared_lib') _", f"@Library('shared_lib@{current_release}') _")
+
+    # change branch inside pipeline to git checkout by tag
+    if "git credentialsId" in config_as_string:
+        config_as_string = script_body_iter(config_as_string, current_release)
+        
+    return config_as_string
+
+# Q.server.upsert_job(name=f"{prod_job['name']}", config_xml=release_job_config)
+
 # for new object config have to be updated
 def update_config(filename):
     # use ET
